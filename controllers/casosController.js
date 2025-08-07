@@ -51,7 +51,7 @@ function validateCasoPartial(caso) {
 async function getAllCasos(req, res) {
     try {
         const { agente_id, status, q } = req.query;
-        
+
         if (status && !['aberto', 'solucionado'].includes(status.toLowerCase())) {
             return res.status(400).json({
                 status: 400,
@@ -60,38 +60,21 @@ async function getAllCasos(req, res) {
             });
         }
 
-        let casos = await casosRepository.findAll();
+        const casos = await casosRepository.searchWithFilters({ agente_id, status, q });
 
-        if (agente_id) {
-            casos = await casosRepository.findByAgenteId(agente_id);
-            if (casos.length === 0) {
-                return res.status(404).json({
-                    status: 404,
-                    message: "Nenhum caso encontrado para o agente especificado"
-                });
-            }
-        }
-        
-        if (status) {
-            casos = await casosRepository.findByStatus(status);
-        }
-        
-        if (q) {
-            casos = await casosRepository.searchByText(q);
-            if (casos.length === 0) {
-                return res.status(404).json({
-                    status: 404,
-                    message: "Nenhum caso encontrado para o termo de busca especificado"
-                });
-            }
+        if (casos.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: "Nenhum caso encontrado para os filtros especificados"
+            });
         }
 
         res.json(casos);
     } catch (error) {
-        res.status(500).json({ 
+        res.status(500).json({
             status: 500,
             message: "Erro interno no servidor",
-            error: error.message 
+            error: error.message
         });
     }
 }
@@ -154,6 +137,14 @@ async function createCaso(req, res) {
 
 async function updateCaso(req, res) {
     try {
+        if (req.body.id !== undefined) {
+            return res.status(400).json({
+                status: 400,
+                message: "Parâmetros inválidos",
+                errors: ["O campo 'id' não pode ser alterado"]
+            });
+        }
+
         if (Object.keys(req.body).length === 0) {
             return res.status(400).json({
                 status: 400,
@@ -200,6 +191,14 @@ async function updateCaso(req, res) {
 
 async function patchCaso(req, res) {
     try {
+        if (req.body.id !== undefined) {
+            return res.status(400).json({
+                status: 400,
+                message: "Parâmetros inválidos",
+                errors: ["O campo 'id' não pode ser alterado"]
+            });
+        }
+
         if (Object.keys(req.body).length === 0) {
             return res.status(400).json({
                 status: 400,

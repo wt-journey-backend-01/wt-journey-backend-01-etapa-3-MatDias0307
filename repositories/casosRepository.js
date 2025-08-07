@@ -1,15 +1,10 @@
 const db = require('../db/db');
 
-async function findAll() {
-    return await db('casos').select('*');
-}
-
 async function findById(id) {
     return await db('casos').where({ id }).first();
 }
 
 async function create(caso) {
-    // Remove o id se existir no payload (o PostgreSQL gerará automaticamente)
     const { id: _, ...dados } = caso;
     
     const [novoCaso] = await db('casos')
@@ -20,7 +15,6 @@ async function create(caso) {
 }
 
 async function update(id, casoAtualizado) {
-    // Remove o id se existir no payload para evitar atualização do ID
     const { id: _, ...dadosSemId } = casoAtualizado;
     
     const [casoAtualizadoDb] = await db('casos')
@@ -35,29 +29,28 @@ async function remove(id) {
     await db('casos').where({ id }).del();
 }
 
-async function findByAgenteId(agente_id) {
-    return await db('casos').where({ agente_id });
-}
-
-async function findByStatus(status) {
-    return await db('casos').where('status', 'ilike', status);
-}
-
-async function searchByText(query) {
+async function searchWithFilters({ agente_id, status, q }) {
     return await db('casos')
-        .where(function() {
-            this.where('titulo', 'ilike', `%${query}%`)
-                .orWhere('descricao', 'ilike', `%${query}%`);
+        .modify(function(queryBuilder) {
+            if (agente_id) {
+                queryBuilder.where('agente_id', agente_id);
+            }
+            if (status) {
+                queryBuilder.where('status', status.toLowerCase());
+            }
+            if (q) {
+                queryBuilder.where(function() {
+                    this.where('titulo', 'ilike', `%${q}%`)
+                        .orWhere('descricao', 'ilike', `%${q}%`);
+                });
+            }
         });
 }
 
 module.exports = {
-    findAll,
     findById,
     create,
     update,
     remove,
-    findByAgenteId,
-    findByStatus,
-    searchByText
+    searchWithFilters
 };
